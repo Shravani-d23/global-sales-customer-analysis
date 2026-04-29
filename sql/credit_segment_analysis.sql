@@ -1,79 +1,50 @@
-/* Breakdown of sales but also displays their credit limit. Grouping of the credit limit as we want a high level view to see if we get higher sales who have a higher credit limit which we would expect. */
+-- Purpose:
+-- Analyze sales performance by grouping customers based on credit limits
+-- to understand whether higher credit limit customers generate higher sales
 
-with sales as
-(
-select t1.ordernumber , t1.customernumber , productcode , quantityordered , priceeach , priceeach * quantityordered as sales_value, creditlimit
-from orders t1
-inner join orderdetails t2
-on t1.ordernumber = t2.ordernumber
-inner join customers t3
-on t1.customerNumber = t3.customerNumber
+WITH sales AS (
+    -- Combine order, product, and customer data
+    SELECT 
+        t1.orderNumber,
+        t1.customerNumber,
+        t2.productCode,
+        t2.quantityOrdered,
+        t2.priceEach,
+        t2.priceEach * t2.quantityOrdered AS sales_value,   -- Total sales per item
+        t3.creditLimit
+    FROM orders t1
+
+    -- Join order details to get quantity and price
+    INNER JOIN orderdetails t2
+        ON t1.orderNumber = t2.orderNumber
+
+    -- Join customers to get credit limit
+    INNER JOIN customers t3
+        ON t1.customerNumber = t3.customerNumber
 )
 
-select ordernumber , customernumber , 
-case when creditlimit < 75000 then 'a: Less than $75K'
-when creditlimit between 75000 and 100000 then 'b:$75k -100k'
-when creditlimit between 100000 and 150000 then 'c:$100k-$150k'
-when creditlimit >150000 then 'd:over $150k'
-else 'Other'
-end as creditlimit_group,
-sum(sales_value) as sales_value
-from sales
-group by ordernumber , customernumber , creditlimit_group
+SELECT 
+    orderNumber,
+    customerNumber,
 
+    -- Group customers into credit limit segments
+    CASE 
+        WHEN creditLimit < 75000 THEN 'A: < $75K'
+        WHEN creditLimit BETWEEN 75000 AND 100000 THEN 'B: $75K - $100K'
+        WHEN creditLimit BETWEEN 100000 AND 150000 THEN 'C: $100K - $150K'
+        WHEN creditLimit > 150000 THEN 'D: > $150K'
+        ELSE 'Other'
+    END AS creditlimit_group,
 
+    SUM(sales_value) AS total_sales   -- Total sales per customer/order
 
+FROM sales
 
+-- Aggregate sales by customer and credit segment
+GROUP BY 
+    orderNumber, 
+    customerNumber, 
+    creditlimit_group
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+-- Insight:
+-- Helps identify whether higher credit limit customers contribute more to revenue
